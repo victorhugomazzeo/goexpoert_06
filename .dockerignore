@@ -1,0 +1,8 @@
+.env
+.git
+*.exe
+Dockerfile
+.dockerignore
+docker-compose.yaml
+otel-collector-config.yaml
+README.md
