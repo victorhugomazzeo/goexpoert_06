@@ -3,11 +3,14 @@ package viacep
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weather"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type response struct {
@@ -31,10 +34,18 @@ func NewClient(client *http.Client) *Client {
 	}
 }
 
-func (c *Client) Search(ctx context.Context, cep string) (string, error) {
+func (c *Client) Search(ctx context.Context, cep string) (city string, err error) {
 
 	ctx, span := tracer.Start(ctx, "busca-cep")
-	defer span.End()
+	defer func() {
+		if err != nil && !errors.Is(err, weather.ErrCEPNotFound) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
+
+	span.SetAttributes(attribute.String("cep", cep))
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+cep+"/json/", nil)
 	if err != nil {
@@ -60,6 +71,8 @@ func (c *Client) Search(ctx context.Context, cep string) (string, error) {
 	if viacepResp.Erro == "true" {
 		return "", weather.ErrCEPNotFound
 	}
+
+	span.SetAttributes(attribute.String("city", viacepResp.Localidade))
 
 	return viacepResp.Localidade, nil
 }
