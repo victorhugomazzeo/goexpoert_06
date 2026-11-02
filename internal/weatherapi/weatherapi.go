@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"go.opentelemetry.io/otel"
 )
 
 const baseURL = "https://api.weatherapi.com/v1/"
@@ -31,7 +33,12 @@ func NewClient(apiKey string, client *http.Client) *Client {
 	}
 }
 
+var tracer = otel.Tracer("github.com/victorhugomazzeo/goexpoert_06/internal/weatherapi")
+
 func (c *Client) Search(ctx context.Context, city string) (float64, error) {
+
+	ctx, span := tracer.Start(ctx, "busca-clima")
+	defer span.End()
 
 	q := url.Values{}
 	q.Set("key", c.apiKey)

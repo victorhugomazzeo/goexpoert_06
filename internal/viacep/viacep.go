@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weather"
+	"go.opentelemetry.io/otel"
 )
 
 type response struct {
@@ -19,6 +20,8 @@ type Client struct {
 	baseURL string
 }
 
+var tracer = otel.Tracer("github.com/victorhugomazzeo/goexpoert_06/internal/viacep")
+
 const baseURL = "https://viacep.com.br/ws/"
 
 func NewClient(client *http.Client) *Client {
@@ -29,6 +32,9 @@ func NewClient(client *http.Client) *Client {
 }
 
 func (c *Client) Search(ctx context.Context, cep string) (string, error) {
+
+	ctx, span := tracer.Start(ctx, "busca-cep")
+	defer span.End()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+cep+"/json/", nil)
 	if err != nil {
