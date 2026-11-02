@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/victorhugomazzeo/goexpoert_06/internal/telemetry"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/viacep"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weather"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weatherapi"
@@ -26,6 +27,22 @@ func main() {
 func run() error {
 
 	_ = godotenv.Load()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	shuwdownTelemetry, err := telemetry.Init(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shuwdownTelemetry(ctx); err != nil {
+			slog.Error("failed to shutdown telemetry", "error", err)
+		}
+	}()
 
 	port := os.Getenv("SERVICE_B_PORT")
 	if port == "" {
@@ -50,9 +67,6 @@ func run() error {
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	errCh := make(chan error, 1)
 
