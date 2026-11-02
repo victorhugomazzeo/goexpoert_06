@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/gateway"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
@@ -51,12 +52,15 @@ func run() error {
 		serviceBURL = "http://localhost:8081"
 	}
 
-	httpClient := &http.Client{Timeout: 5 * time.Second}
+	httpClient := &http.Client{
+		Timeout:   5 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	client := gateway.NewWeatherClient(serviceBURL, httpClient)
 	handler := gateway.NewHandler(client)
 
 	mux := http.NewServeMux()
-	mux.Handle("POST /weather", handler)
+	mux.Handle("POST /weather", otelhttp.NewHandler(handler, "POST /weather"))
 	ws := &http.Server{
 		Addr:              ":" + port,
 		Handler:           mux,

@@ -15,6 +15,7 @@ import (
 	"github.com/victorhugomazzeo/goexpoert_06/internal/viacep"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weather"
 	"github.com/victorhugomazzeo/goexpoert_06/internal/weatherapi"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	shuwdownTelemetry, err := telemetry.Init(ctx)
+	shutdownTelemetry, err := telemetry.Init(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ func run() error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := shuwdownTelemetry(ctx); err != nil {
+		if err := shutdownTelemetry(ctx); err != nil {
 			slog.Error("failed to shutdown telemetry", "error", err)
 		}
 	}()
@@ -54,14 +55,17 @@ func run() error {
 		return errors.New("WEATHER_API_KEY is required")
 	}
 
-	httpClient := &http.Client{Timeout: 5 * time.Second}
+	httpClient := &http.Client{
+		Timeout:   5 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	citySearcher := viacep.NewClient(httpClient)
 	tempSearcher := weatherapi.NewClient(apiKey, httpClient)
 	service := weather.NewService(tempSearcher, citySearcher)
 	handler := weather.NewHandler(service)
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /weather", handler)
+	mux.Handle("GET /weather", otelhttp.NewHandler(handler, "GET /weather"))
 	ws := &http.Server{
 		Addr:              ":" + port,
 		Handler:           mux,
