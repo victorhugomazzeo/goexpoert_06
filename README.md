@@ -76,8 +76,6 @@ service-a: post /weather
 Os spans manuais trazem os atributos `cep`, `city` e `temp_c`, e ficam marcados como erro quando a API externa falha.
 
 ## Decisões
-
-- **Kelvin:** o enunciado indica `K = C + 273`, mas o exemplo de resposta (28.5 °C → 301.65 K) usa `273.15`. Foi adotado `273.15`.
 - **service-b indisponível:** o service-a responde `502 Bad Gateway`.
 
 ## Testes

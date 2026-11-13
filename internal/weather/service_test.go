@@ -54,11 +54,11 @@ func TestToKelvin(t *testing.T) {
 		celsius float64
 		want    float64
 	}{
-		{name: "zero", celsius: 0, want: 273.15},
-		{name: "positive", celsius: 100, want: 373.15},
-		{name: "negative at absolute zero", celsius: -273.15, want: 0},
-		{name: "decimal from API contract", celsius: 28.5, want: 301.65},
-		{name: "body temperature", celsius: 36.6, want: 309.75},
+		{name: "zero", celsius: 0, want: 273},
+		{name: "positive", celsius: 100, want: 373},
+		{name: "negative at absolute zero", celsius: -273, want: 0},
+		{name: "decimal from API contract", celsius: 28.5, want: 301.5},
+		{name: "body temperature", celsius: 36.6, want: 309.6},
 	}
 
 	for _, tt := range tests {
@@ -80,7 +80,7 @@ func TestService_Search(t *testing.T) {
 	cs := &fakeCitySearcher{city: "São Paulo"}
 	ts := &fakeTempSearcher{temp: 28.5}
 	f := 83.3
-	k := 301.65
+	k := 301.5
 
 	s := NewService(ts, cs)
 	resp, err := s.Search(t.Context(), "01001000")
